@@ -15,7 +15,7 @@ This is a C++ framework for variant **weighted** network embedding techniques. W
   - [DeepWalk: online learning of social representations](http://dl.acm.org/citation.cfm?id=2623732)
 - Walklets
   - [Don't Walk, Skip! Online Learning of Multi-scale Network Embeddings](https://arxiv.org/abs/1605.02115)
-- LINE(**L**arge-scale **I**nformation **N**etwork **E**mbedding)
+- LINE (**L**arge-scale **I**nformation **N**etwork **E**mbedding)
   - [LINE: Large-scale Information Network Embedding](http://dl.acm.org/citation.cfm?id=2741093) 
 - HPE (**H**eterogeneous **P**reference **E**mbedding)
   - [Query-based Music Recommendations via Preference Embedding](http://dl.acm.org/citation.cfm?id=2959169)
@@ -105,3 +105,13 @@ Changing the number of threads in *train_youtube.sh* could speedup the process.
 
 # Related Work
 You can find related work from [awesome-network-embedding](https://github.com/chihming/awesome-network-embedding).
+
+# Citation
+```
+@article{pronet2017,
+  title={Vertex-Context Sampling for Weighted Network Embedding},
+  author={Chih-Ming Chen and Yi-Hsuan Yang and Yian Chen and Ming-Feng Tsai},
+  journal={arXiv preprint arXiv:{1711.00227}},
+  year={2017}
+}
+```
