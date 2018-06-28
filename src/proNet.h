@@ -158,11 +158,20 @@ class proNet {
 
         // Data Process
         void LoadEdgeList(string, bool);
+		void Load2EdgeList(string, bool);
         void LoadFieldMeta(string);
         
         vector< int > dynamic_walk;
         void LoadWalkMeta(string);
         void LoadPreTrain(string,int);
+
+		// Cross-Domain
+		int *vid_status;
+		int *joint_node;
+		vector< long > src_uid;
+		vector< long > src_iid;
+		vector< long > tar_uid;
+		vector< long > tar_iid;
 
         // Network Process
         long SourceSample();
@@ -198,6 +207,7 @@ class proNet {
         
         // vertex vector, context vector, vertex, context, dimension, negative samples, alpha
         void UpdatePair(vector< vector<double> >&, vector< vector<double> >&, long, long, int, int, double);
+        void UpdateTPair(vector< vector<double> >&, vector< vector<double> >&, long, long, int, int, double,double);
         void UpdateFPair(vector< vector<double> >&, vector< vector<double> >&, long, long, int, int, double);
         void UpdateCosinePair(vector< vector<double> >&, vector< vector<double> >&, long, long, int, int, double);
         void UpdatePair1(double*, double*, long, long, int, int, double);

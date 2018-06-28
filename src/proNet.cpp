@@ -235,6 +235,114 @@ void proNet::LoadEdgeList(string filename, bool undirect) {
 
 }
 
+void proNet::Load2EdgeList(string filename, bool undirect) {
+    // calculate the total connections
+    FILE *fin;
+    char c_line[1000];
+    vector< string > filenames;
+    vector< int > filelines;
+    // load from a folder or from a file
+    if (isDirectory(filename.c_str()))
+    {
+        DIR *dir;
+        struct dirent *ent;
+        dir = opendir(filename.c_str());
+        while ((ent = readdir (dir)) != NULL) {
+			if (ent->d_name[0] != '.'){ // ignore hidden files
+            	string fname = filename + "/" + ent->d_name;
+            	filenames.push_back(fname);
+			}
+        }
+        closedir(dir);
+    }
+    else
+    {
+        filenames.push_back(filename.c_str());
+    }
+	sort(filenames.begin(),filenames.end());
+    cout << "Connections Preview:" << endl; 
+    for (auto fname: filenames)
+    {
+        fin = fopen(fname.c_str(), "rb");
+        while (fgets(c_line, sizeof(c_line), fin))
+        {
+            if (MAX_line % MONITOR == 0)
+            {
+                printf("\t# of connection:\t%lld%c", MAX_line, 13);
+            }
+            ++MAX_line;
+        }
+        fclose(fin);
+        filelines.push_back(MAX_line);
+    }
+    cout << "\t# of connection:\t" << MAX_line << endl;
+    // load the connections
+    char v1[160], v2[160];
+    long vid1, vid2;
+    double w;
+    unordered_map< long, vector< long > > graph;
+    unordered_map< long, vector< double > > edge;
+
+    cout << "Connections Loading:" << endl;
+    unsigned long long line = 0;
+    for (int i=0; i<filenames.size(); i++)
+    {
+        fin = fopen(filenames[i].c_str(), "rb");
+		cout << i << ", " << filenames[i].c_str() << endl;
+        for (; line != filelines[i]; line++)
+        {
+            if ( fscanf(fin, "%s %s %lf", v1, v2, &w) != 3 )
+            {
+                cout << "\t[ERROR] line " << line << " contains wrong number of column data" << endl; 
+                continue;
+            }
+
+            // generate keys lookup table (vertex_map)
+            vid1 = SearchHashTable(vertex_hash, v1);
+            if (vid1 == -1){ //src_domain vid not exist --> add node
+                InsertHashTable(vertex_hash, v1);
+                vid1 = vertex_hash.keys.size()-1;
+			}
+			//vid2
+            vid2 = SearchHashTable(vertex_hash, v2);
+            if (vid2 == -1){ //src_domain vid not exist --> add node
+                InsertHashTable(vertex_hash, v2);
+                vid2 = vertex_hash.keys.size()-1;
+			}
+			// record source/target domain vids
+			if (i==0){ 
+				src_uid.push_back(vid1);
+				src_iid.push_back(vid2);
+			}else{
+				tar_uid.push_back(vid1);
+				tar_iid.push_back(vid2);
+			}
+            MAX_vid = vertex_hash.keys.size();
+            graph[vid1].push_back(vid2);
+            edge[vid1].push_back(w);
+            if (undirect)
+            {
+                graph[ vid2 ].push_back( vid1 );
+                edge[ vid2 ].push_back( w );
+            }
+            if (line % MONITOR == 0)
+            {
+                printf("\tProgress:\t\t%.2f %%%c", (double)(line)/(MAX_line+1) * 100, 13);
+                fflush(stdout);
+            }
+        }
+        fclose(fin);
+    }
+    cout << "\tProgress:\t\t100.00 %\r" << endl;
+    cout << "\t# of vertex:\t\t" << MAX_vid << endl;
+    if (undirect)
+        MAX_line *= 2;
+    BuildAliasMethod(graph, edge);
+    cout << "\tFinished." << endl;
+}
+
+
+
 void proNet::LoadPreTrain(string filename, int tar_dim) {
 
     FILE *fin;
@@ -1172,6 +1280,33 @@ void proNet::Opt_SigmoidRegSGD(vector<double>& w_vertex_ptr, vector<double>& w_c
     for (d=0; d<dimension; ++d) // update context
         loss_context_ptr[d] += alpha * (g * w_vertex_ptr[d] - reg * w_context_ptr[d]);
 
+}
+
+void proNet::UpdateTPair(vector< vector<double> >& w_vertex, vector< vector<double> >& w_context, long vertex, long context, int dimension, int negative_samples, double alpha, double reg){
+    
+    vector< double > back_err;
+    back_err.resize(dimension, 0.0);
+
+    int d;
+    double label=1.0;
+	long neg_context = 0;
+
+    // positive
+    Opt_SigmoidRegSGD(w_vertex[vertex], w_context[context], label, alpha, reg, back_err, w_context[context]);
+    // negative
+    label = 0.0;
+    for (int neg=0; neg!=negative_samples; ++neg)
+    {
+        //neg_context = random_gen(0,MAX_vid);
+        neg_context = NegativeSample();
+		while(vid_status[neg_context] != vid_status[context]){
+			//neg_context = random_gen(0,MAX_vid);
+        	neg_context = NegativeSample();
+		}
+        Opt_SigmoidRegSGD(w_vertex[vertex], w_context[neg_context], label, alpha, reg, back_err, w_context[neg_context]);
+    }
+    for (d=0; d<dimension; ++d)
+        w_vertex[vertex][d] += back_err[d];
 }
 
 void proNet::UpdateWARPPair(vector< vector<double> >& w_vertex, vector< vector<double> >& w_context, long vertex, long context_i, long context_j, int dimension, double alpha){
